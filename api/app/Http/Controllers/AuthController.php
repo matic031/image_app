@@ -1,5 +1,7 @@
 <?php
 
+// app/Http/Controllers/AuthController.php
+
 namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
@@ -54,3 +56,4 @@ class AuthController extends Controller
         return response()->json(['message' => 'Successfully logged out']);
     }
 }
+

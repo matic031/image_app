@@ -64,7 +64,7 @@ services:
       retries: 3
       timeout: 5s
     env_file:
-      - ./.env
+      - ./api/.env
 
 networks:
   sail:

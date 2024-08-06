@@ -11,6 +11,8 @@ import Button from 'primevue/button';
 import Card from 'primevue/card';
 import './assets/styles/tailwind.css';
 import router from './router';
+import Toast from 'primevue/toast';
+import ToastService from 'primevue/toastservice';
 
 const app = createApp(App);
 app.use(PrimeVue, {
@@ -25,7 +27,9 @@ app.use(PrimeVue, {
 app.component('FileUpload', FileUpload);
 app.component('InputText', InputText);
 app.component('Button', Button);
+app.component('Toast', Toast);
 
+app.use(ToastService)
 app.use(router);
 
 app.mount('#app');
