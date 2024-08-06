@@ -26,10 +26,19 @@
             <InputText v-model="image.title" placeholder="Edit image title" class="flex-grow" />
             <Button label="Update Title" icon="pi pi-refresh" @click="updateImage(image)" class="p-button-warning w-40" />
             <Button label="Delete Image" icon="pi pi-trash" @click="deleteImage(image.id)" class="p-button-danger ml-2 w-40" />
-            <Button label="Share" icon="pi pi-share-alt" @click="shareImage(image)" class="p-button-success ml-2 w-40" />
+            <Button label="Share" icon="pi pi-share-alt" @click="openShareDialog(image)" class="p-button-success ml-2 w-40" />
           </div>
         </div>
       </div>
+      
+      <!-- Share button -->
+      <Dialog header="Share Image" v-model:visible="shareDialogVisible" :modal="true" :closable="false">
+        <div class="p-fluid">
+          <Dropdown v-model="selectedUser" :options="users" optionLabel="name" placeholder="Select a user to share with" />
+          <Button label="Share" icon="pi pi-check" @click="shareImage" class="p-button-success mt-2 ml-4" />
+          <Button label="Cancel" icon="pi pi-times" @click="closeShareDialog" class="p-button-secondary mt-2 ml-4" />
+        </div>
+      </Dialog>
     </div>
   </div>
 </template>
@@ -40,6 +49,8 @@ import FileUpload from 'primevue/fileupload';
 import InputText from 'primevue/inputtext';
 import Button from 'primevue/button';
 import Card from 'primevue/card';
+import Dialog from 'primevue/dialog';
+import Dropdown from 'primevue/dropdown';
 import { useRouter } from 'vue-router';
 import { useToast } from 'primevue/usetoast';
 
@@ -49,12 +60,18 @@ export default {
     InputText,
     Button,
     Card,
+    Dialog,
+    Dropdown,
   },
   data() {
     return {
       selectedFiles: [],
       newTitle: '',
-      images: []
+      images: [],
+      users: [],
+      selectedUser: null,
+      shareDialogVisible: false,
+      imageToShare: null,
     };
   },
   computed: {
@@ -114,6 +131,15 @@ export default {
         this.showToast('error', 'Error', 'Failed to fetch images');
       }
     },
+    async fetchUsers() {
+      try {
+        const response = await axios.get('/users');
+        this.users = response.data;
+      } catch (error) {
+        console.error('Error fetching users:', error);
+        this.showToast('error', 'Error', 'Failed to fetch users');
+      }
+    },
     async updateImage(image) {
       try {
         const response = await axios.put(`/images/${image.id}`, { title: image.title });
@@ -134,8 +160,25 @@ export default {
         this.showToast('error', 'Error', 'Failed to delete image');
       }
     },
-    async shareImage(image) {
-      this.copyToClipboard(image.path);
+    openShareDialog(image) {
+      this.imageToShare = image;
+      this.shareDialogVisible = true;
+      this.fetchUsers();
+    },
+    async shareImage() {
+      try {
+        await axios.post(`/images/${this.imageToShare.id}/share`, { shared_with_user_id: this.selectedUser.id });
+        this.showToast('success', 'Success', 'Image shared successfully');
+        this.closeShareDialog();
+      } catch (error) {
+        console.error('Error sharing image:', error);
+        this.showToast('error', 'Error', 'Failed to share image');
+      }
+    },
+    closeShareDialog() {
+      this.shareDialogVisible = false;
+      this.selectedUser = null;
+      this.imageToShare = null;
     },
     async logout() {
       try {
@@ -154,4 +197,3 @@ export default {
   }
 };
 </script>
-

@@ -6,21 +6,19 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Storage;
 use App\Models\Image;
 use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Auth;
+
+use App\Models\SharedImage;
 
 class ImageController extends Controller
 {
-    public function getAllImages()
+    public function index()
     {
-        return Image::all();
+        $user = Auth::user();
+        return Image::where('user_id', $user->id)->get();
     }
 
-    public function showShared($uuid)
-    {
-        $image = Image::where('shared_url', $uuid)->firstOrFail();
-        return response()->json($image);
-    }
-
-    public function createImage(Request $request)
+    public function store(Request $request)
     {
         $request->validate([
             'file' => 'required|image|mimes:jpeg,png,jpg,gif,svg,bmp|max:2048',
@@ -33,12 +31,12 @@ class ImageController extends Controller
                 $path = $file->store('images', 'public');
                 $imageUrl = Storage::url($path);
 
-                // Append the port to the URL
                 $imageUrl = str_replace('http://localhost', 'http://localhost:8000', $imageUrl);
 
                 $image = Image::create([
                     'title' => $request->title,
-                    'path' => $imageUrl
+                    'path' => $imageUrl,
+                    'user_id' => Auth::id()
                 ]);
 
                 return response()->json($image, 201);
@@ -51,13 +49,13 @@ class ImageController extends Controller
         return response()->json(['error' => 'Image upload failed'], 400);
     }
 
-    public function updateImage(Request $request, $id)
+    public function update(Request $request, $id)
     {
         $request->validate([
             'title' => 'required|string|max:255',
         ]);
 
-        $image = Image::findOrFail($id);
+        $image = Image::where('user_id', Auth::id())->findOrFail($id);
         $image->title = $request->title;
 
         if ($request->hasFile('file')) {
@@ -78,9 +76,9 @@ class ImageController extends Controller
         return response()->json($image);
     }
 
-    public function deleteImage($id)
+    public function destroy($id)
     {
-        $image = Image::findOrFail($id);
+        $image = Image::where('user_id', Auth::id())->findOrFail($id);
 
         if ($image->path) {
             $oldPath = str_replace('/storage', 'public', $image->path);
@@ -91,4 +89,21 @@ class ImageController extends Controller
 
         return response()->json(['message' => 'Image deleted successfully'], 200);
     }
+
+    public function shareImage(Request $request, $imageId)
+    {
+        $request->validate([
+            'shared_with_user_id' => 'required|exists:users,id',
+        ]);
+
+        $image = Image::where('user_id', Auth::id())->findOrFail($imageId);
+
+        SharedImage::create([
+            'image_id' => $image->id,
+            'shared_with_user_id' => $request->shared_with_user_id,
+        ]);
+
+        return response()->json(['message' => 'Image shared successfully'], 200);
+    }
+
 }
